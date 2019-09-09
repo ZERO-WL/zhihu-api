@@ -2,20 +2,13 @@ const Koa = require('koa');
 const bodyparser = require('koa-bodyparser');
 const error = require('koa-json-error');
 const parameter = require('koa-parameter');
+const mongoose = require('mongoose');
 const app = new Koa();
 const routing = require('./routes');
+const {connectionStr} = require('./config')
 
-
-// app.use(async (ctx,next)=>{
-//     try{
-//         await next();
-//     }catch(err){
-//       ctx.status = err.status || err.statusCode || 500;  
-//       ctx.body = {
-//           message: err.message
-//       }
-//     }
-// })
+mongoose.connect(connectionStr, { useNewUrlParser: true }, ()=>console.log('MongoDB连接成功了'));
+mongoose.connection.on('error',console.error);
 
 app.use(error({
     //定制返回格式
