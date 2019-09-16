@@ -1,41 +1,66 @@
-const db = [{name:'李雷'}];
-
+const jsonwebtoken = require('jsonwebtoken');
+const User = require('../models/users');
+const {secret} = require('../config');
 class UserCtl {
-    find(ctx){
-        // a.b
-        ctx.body = db;
+    async find(ctx){
+        ctx.body = await User.find();
     }
-    findById(ctx){
-        if(ctx.params.id*1>=db.length){
-            ctx.throw(412,'先决条件错误');
-        }
-        ctx.body = db[ctx.params.id*1];
+    async findById(ctx){
+        const { fields } = ctx.query;
+        const selectFields = fields.split(';').filter(f => f).map(f => ' +' + f).join('');
+        const user = await User.findById(ctx.params.id).select(selectFields);//select('+educations +business')  显示默认隐藏的数据
+        if(!user){ctx.throw(404,"用户不存在");}
+        ctx.body = user;
     }
-    create(ctx){
+    async create(ctx){
         ctx.verifyParams({
             name:{type: 'string',required: true},
-            age:{type: 'number',required: false}
-        })
-        db.push(ctx.request.body);
-        ctx.body = ctx.request.body;
+            password:{type: 'string',required:true}
+        });
+        //校验用户名唯一性
+        const { name } = ctx.request.body;
+        const repeatedUser = await User.findOne({ name });
+        if( repeatedUser ){ ctx.throw(409, '用户名已存在'); }// 409代表冲突
+
+        const user = await new User(ctx.request.body).save();
+        ctx.body = user;
     }
-    update(ctx){
-        if(ctx.params.id*1>=db.length){
-            ctx.throw(412,'先决条件错误');
-        }
+    // 授权
+    async checkOwner(ctx, next){
+        if(ctx.params.id !== ctx.state.user._id){ctx.throw(403, '没有权限');}
+        await next();
+    }
+    async update(ctx){
         ctx.verifyParams({
-            name:{type: 'string',required: true},
-            age:{type: 'number',required: false}
+            name:{type: 'string',required: false},
+            password:{type: 'string',required: false},
+            avatar_url:{type:'string',required:false},
+            gender:{type:'string',required:false},
+            headline:{type:'string',required:false},
+            locations:{type:'array',itemType:'string',required:false},
+            business:{type:'string',required:false},
+            employments:{type:'array',itemType:'object',required:false},
+            educations:{type:'array',itemType:'object',required:false},
         })
-        db[ctx.params.id*1] = ctx.request.body;
-        ctx.body = ctx.request.body;
+        const user = await User.findByIdAndUpdate(ctx.params.id, ctx.request.body);
+        if(!user){ctx.throw(404,"用户不存在");}
+        ctx.body = user;
     }
-    delete(ctx){
-        if(ctx.params.id*1>=db.length){
-            ctx.throw(412,'先决条件错误');
-        }
-        db.splice(ctx.params.id*1,1)
+    async delete(ctx){
+        const user = await User.findByIdAndRemove(ctx.params.id);
+        if(!user){ctx.throw(404,"用户不存在");}
         ctx.status = 204;
+    }
+    async login(ctx){
+        ctx.verifyParams({
+            name: {type: 'string', required: true},
+            password: {type: 'string', required: true}
+        });
+        const user = await User.findOne(ctx.request.body);
+        if(!user){ctx.throw(401, '用户名或密码不正确');}
+        const {_id, name} = user;
+        const token = jsonwebtoken.sign({_id, name},secret,{expiresIn:'1d'});//第三个参可以配置别的东西，例如:expiresIn，过期时间
+        ctx.body = {token};
     }
 }
 
