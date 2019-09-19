@@ -1,5 +1,4 @@
 const Question = require('../models/questions');
-const User = require('../models/users');
 
 class QuestionCtl {
     async find(ctx){
@@ -20,7 +19,7 @@ class QuestionCtl {
     async findById(ctx){
         const { fields='' } = ctx.query;
         const selectFields = fields.split(';').filter(f => f).map(f => ' +'+f).join('');
-        const question = await Question.findById(ctx.params.id).select(selectFields).populate('questioner');
+        const question = await Question.findById(ctx.params.id).select(selectFields).populate('questioner topics');
         ctx.body = question;
     }
     async create(ctx){

@@ -1,5 +1,6 @@
 const Topic = require('../models/topics');
 const User = require('../models/users');
+const Question = require('../models/questions');
 
 class TopicCtl {
     async find(ctx){
@@ -45,6 +46,10 @@ class TopicCtl {
     async listTopicFollowers(ctx){
         const users = await User.find({ followingTopics: ctx.params.id });//从数组中查找某一项可以直接写
         ctx.body = users;
+    }
+    async listQuestions(ctx){
+        const questions = await Question.find({topics: ctx.params.id});
+        ctx.body = questions;
     }
 }
 
