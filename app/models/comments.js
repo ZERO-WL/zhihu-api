@@ -8,6 +8,8 @@ const commentSchema = new Schema({
     commentator: { type: Schema.Types.ObjectId, ref:'User', required: true, select:false },
     questionId: { type: String, required: true},
     answerId: { type: String, required: true},
-});
+    rootCommentId: { type: String},
+    replyTo: { type: Schema.Types.ObjectId, ref:'User'},
+}, { timestamps: true });
 
 module.exports = model('Comment', commentSchema);
